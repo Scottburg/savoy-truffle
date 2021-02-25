@@ -79,14 +79,15 @@ App = {
       .then(function (instance) {
         adoptionInstance = instance;
 
-        return adoptionInstance.getAdopters.call();
+        return adoptionInstance.getAdopters.call(); // call allows to read data from blockchain - no gas cost.
       })
       .then(function (adopters) {
         for (i = 0; i < adopters.length; i++) {
           if (adopters[i] !== '0x0000000000000000000000000000000000000000') {
+            // ethereum initialises empty addresses for address type (with 0x00....)
             $('.panel-pet')
               .eq(i)
-              .find('button')
+              .find('button') // if an adopter is found with the pet the adopt button is changed.
               .text('Success')
               .attr('disabled', true);
           }
@@ -102,9 +103,29 @@ App = {
 
     var petId = parseInt($(event.target).data('id'));
 
-    /*
-     * Replace me...
-     */
+    var adoptionInstance;
+
+    web3.eth.getAccounts(function (error, accounts) {
+      if (error) {
+        console.log(error);
+      }
+
+      var account = accounts[0];
+
+      App.contracts.Adoption.deployed()
+        .then(function (instance) {
+          adoptionInstance = instance;
+
+          // Execute adopt as a transaction by sending account
+          return adoptionInstance.adopt(petId, { from: account });
+        })
+        .then(function (result) {
+          return App.markAdopted();
+        })
+        .catch(function (err) {
+          console.log(err.message);
+        });
+    });
   },
 };
 
